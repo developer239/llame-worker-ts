@@ -86,7 +86,7 @@ export interface VideoFrames {
 
 interface NativeEngine {
   load(options: LoadOptions): Promise<void>;
-  generate(
+  prompt(
     options: Omit<PromptOptions, 'onToken'>,
     onToken?: (piece: string) => void
   ): Promise<PromptResult>;
@@ -154,7 +154,7 @@ export class LlameWorker {
    */
   prompt(options: PromptOptions): Promise<PromptResult> {
     const { onToken, ...params } = options ?? {};
-    return this.#enqueue(() => this.#native.generate(params, onToken));
+    return this.#enqueue(() => this.#native.prompt(params, onToken));
   }
 
   /** Convenience for the most common case. */

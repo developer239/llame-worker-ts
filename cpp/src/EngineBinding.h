@@ -5,7 +5,9 @@
 #include <atomic>
 #include <memory>
 
+namespace llameworker {
 class LlameWorker;
+}
 
 // Minimal Node-API surface over the llameworker engine. All ergonomics
 // (call queueing, async iteration, video, defaults documentation) live in
@@ -25,7 +27,7 @@ class EngineBinding : public Napi::ObjectWrap<EngineBinding> {
   // Shared with in-flight workers so the engine cannot be destroyed (or the
   // JS wrapper garbage-collected) out from under a running generation -
   // the use-after-free the v1 detached thread allowed.
-  std::shared_ptr<LlameWorker> engine;
+  std::shared_ptr<llameworker::LlameWorker> engine;
 
   // One operation at a time per instance. The TypeScript wrapper already
   // serializes; this guard protects direct users of the raw addon.

@@ -2,6 +2,7 @@
 
 #include <cstdint>
 #include <string>
+#include <string_view>
 #include <utility>
 #include <vector>
 
@@ -44,8 +45,8 @@ void ReadBool(const Napi::Object& source, const char* key, bool& out) {
   }
 }
 
-VisionModelParams ReadModelParams(const Napi::Object& source) {
-  VisionModelParams params;
+llameworker::VisionModelParams ReadModelParams(const Napi::Object& source) {
+  llameworker::VisionModelParams params;
   ReadString(source, "modelPath", params.modelPath);
   ReadString(source, "projectorPath", params.projectorPath);
   ReadInt(source, "gpuLayerCount", params.gpuLayerCount);
@@ -58,8 +59,8 @@ VisionModelParams ReadModelParams(const Napi::Object& source) {
   return params;
 }
 
-PromptParams ReadPromptParams(const Napi::Object& source) {
-  PromptParams params;
+llameworker::PromptParams ReadPromptParams(const Napi::Object& source) {
+  llameworker::PromptParams params;
   ReadString(source, "prompt", params.prompt);
   if (source.Has("imagePaths") && source.Get("imagePaths").IsArray()) {
     Napi::Array paths = source.Get("imagePaths").As<Napi::Array>();
@@ -85,9 +86,9 @@ PromptParams ReadPromptParams(const Napi::Object& source) {
 
 class LoadWorker : public Napi::AsyncWorker {
  public:
-  LoadWorker(Napi::Env env, std::shared_ptr<LlameWorker> engine,
+  LoadWorker(Napi::Env env, std::shared_ptr<llameworker::LlameWorker> engine,
              std::shared_ptr<std::atomic<bool>> busy,
-             VisionModelParams params)
+             llameworker::VisionModelParams params)
       : Napi::AsyncWorker(env),
         deferred(Napi::Promise::Deferred::New(env)),
         engine(std::move(engine)),
@@ -98,8 +99,8 @@ class LoadWorker : public Napi::AsyncWorker {
 
  protected:
   void Execute() override {
-    succeeded = engine->Load(params);
-    if (!succeeded) errorMessage = engine->LoadError();
+    succeeded = engine->load(params);
+    if (!succeeded) errorMessage = engine->loadError();
   }
 
   void OnOK() override {
@@ -118,16 +119,16 @@ class LoadWorker : public Napi::AsyncWorker {
 
  private:
   Napi::Promise::Deferred deferred;
-  std::shared_ptr<LlameWorker> engine;
+  std::shared_ptr<llameworker::LlameWorker> engine;
   std::shared_ptr<std::atomic<bool>> busy;
-  VisionModelParams params;
+  llameworker::VisionModelParams params;
   bool succeeded = false;
   std::string errorMessage;
 };
 
 class UnloadWorker : public Napi::AsyncWorker {
  public:
-  UnloadWorker(Napi::Env env, std::shared_ptr<LlameWorker> engine,
+  UnloadWorker(Napi::Env env, std::shared_ptr<llameworker::LlameWorker> engine,
                std::shared_ptr<std::atomic<bool>> busy)
       : Napi::AsyncWorker(env),
         deferred(Napi::Promise::Deferred::New(env)),
@@ -137,7 +138,7 @@ class UnloadWorker : public Napi::AsyncWorker {
   Napi::Promise Promise() const { return deferred.Promise(); }
 
  protected:
-  void Execute() override { engine->Unload(); }
+  void Execute() override { engine->unload(); }
 
   void OnOK() override {
     busy->store(false);
@@ -151,15 +152,15 @@ class UnloadWorker : public Napi::AsyncWorker {
 
  private:
   Napi::Promise::Deferred deferred;
-  std::shared_ptr<LlameWorker> engine;
+  std::shared_ptr<llameworker::LlameWorker> engine;
   std::shared_ptr<std::atomic<bool>> busy;
 };
 
 class PromptWorker : public Napi::AsyncWorker {
  public:
-  PromptWorker(Napi::Env env, std::shared_ptr<LlameWorker> engine,
+  PromptWorker(Napi::Env env, std::shared_ptr<llameworker::LlameWorker> engine,
                std::shared_ptr<std::atomic<bool>> busy,
-               PromptParams params, Napi::Function onToken)
+               llameworker::PromptParams params, Napi::Function onToken)
       : Napi::AsyncWorker(env),
         deferred(Napi::Promise::Deferred::New(env)),
         engine(std::move(engine)),
@@ -177,9 +178,9 @@ class PromptWorker : public Napi::AsyncWorker {
 
  protected:
   void Execute() override {
-    TokenCallback callback;
+    llameworker::TokenCallback callback;
     if (hasTokenFn) {
-      callback = [this](const std::string& piece) {
+      callback = [this](std::string_view piece) {
         auto* text = new std::string(piece);
         tokenFn.BlockingCall(
             text, [](Napi::Env env, Napi::Function fn, std::string* value) {
@@ -188,7 +189,7 @@ class PromptWorker : public Napi::AsyncWorker {
             });
       };
     }
-    result = engine->Prompt(params, callback);
+    result = engine->prompt(params, callback);
   }
 
   void OnOK() override {
@@ -225,12 +226,12 @@ class PromptWorker : public Napi::AsyncWorker {
   }
 
   Napi::Promise::Deferred deferred;
-  std::shared_ptr<LlameWorker> engine;
+  std::shared_ptr<llameworker::LlameWorker> engine;
   std::shared_ptr<std::atomic<bool>> busy;
-  PromptParams params;
+  llameworker::PromptParams params;
   Napi::ThreadSafeFunction tokenFn;
   bool hasTokenFn = false;
-  PromptResult result;
+  llameworker::PromptResult result;
 };
 
 }  // namespace
@@ -242,20 +243,22 @@ Napi::Object EngineBinding::Init(Napi::Env env, Napi::Object exports) {
       env, "NativeEngine",
       {
           InstanceMethod("load", &EngineBinding::Load),
-          InstanceMethod("generate", &EngineBinding::Prompt),
+          InstanceMethod("prompt", &EngineBinding::Prompt),
           InstanceMethod("unload", &EngineBinding::Unload),
           InstanceMethod("isLoaded", &EngineBinding::IsLoaded),
       });
 
   exports.Set("NativeEngine", constructor);
-  exports.Set("mediaMarker",
-              Napi::String::New(env, LlameWorker::MediaMarker()));
+  exports.Set(
+      "mediaMarker",
+      Napi::String::New(
+          env, std::string(llameworker::LlameWorker::mediaMarker())));
   return exports;
 }
 
 EngineBinding::EngineBinding(const Napi::CallbackInfo& info)
     : Napi::ObjectWrap<EngineBinding>(info),
-      engine(std::make_shared<LlameWorker>()),
+      engine(std::make_shared<llameworker::LlameWorker>()),
       busy(std::make_shared<std::atomic<bool>>(false)) {}
 
 Napi::Value EngineBinding::Load(const Napi::CallbackInfo& info) {
@@ -279,7 +282,7 @@ Napi::Value EngineBinding::Load(const Napi::CallbackInfo& info) {
 Napi::Value EngineBinding::Prompt(const Napi::CallbackInfo& info) {
   Napi::Env env = info.Env();
   if (info.Length() < 1 || !info[0].IsObject()) {
-    Napi::TypeError::New(env, "generate() expects an options object")
+    Napi::TypeError::New(env, "prompt() expects an options object")
         .ThrowAsJavaScriptException();
     return env.Undefined();
   }
@@ -312,5 +315,5 @@ Napi::Value EngineBinding::Unload(const Napi::CallbackInfo& info) {
 }
 
 Napi::Value EngineBinding::IsLoaded(const Napi::CallbackInfo& info) {
-  return Napi::Boolean::New(info.Env(), engine->IsLoaded());
+  return Napi::Boolean::New(info.Env(), engine->isLoaded());
 }
