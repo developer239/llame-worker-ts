@@ -1,10 +1,11 @@
-# llama.cpp-ts 🦙👁
+# Llame Worker TS 🦙🦙
 
-Local **multimodal** inference for Node.js: one-off image, video, and text
-prompts against GGUF models, running entirely on your machine over
-[llama.cpp](https://github.com/ggml-org/llama.cpp) (via the
-[llame-worker](https://github.com/developer239/llame-worker) C++ core). No
-server to manage, no API costs. Built for CLI tools and MCP servers.
+Node.js bindings for [llame-worker](https://github.com/developer239/llame-worker),
+a small C++ wrapper around [llama.cpp](https://github.com/ggml-org/llama.cpp)'s
+multimodal API. Use it when a Node process needs local one-off prompts over a
+GGUF model: text, images, or video frames. There is no server process and no API
+account. Your process loads the model once, then sends independent generation
+requests to the native addon.
 
 ```js
 const { LlamaVision } = require('llama.cpp-ts');
@@ -18,40 +19,52 @@ const result = await llama.describeImage('/abs/path/screenshot.png');
 console.log(result.text);
 ```
 
-**Supported systems:** macOS (Metal by default), Linux, Windows.
+The package is aimed at CLI tools, desktop helpers, scripts, and MCP servers
+that need local vision-capable inference without standing up a separate
+llama.cpp server.
 
 ## Requirements
 
-Installation compiles llama.cpp from source, so the machine needs a C++
-toolchain (Xcode Command Line Tools on macOS, `build-essential` on Linux,
-MSVC Build Tools on Windows), plus **CMake** and **git** on PATH, and
-Node >= 18. The first install takes several minutes; later installs reuse
-the build cache. You also need a vision-capable GGUF model **and its
-matching projector** (`mmproj-*.gguf`) - e.g. `gemma-3-4b-it` from the
-ggml-org Hugging Face repos. For video, install `ffmpeg` (with `ffprobe`).
+The native addon is built during package installation. The machine needs:
 
-## Installation
+- Node >= 18
+- a C++ toolchain: Xcode Command Line Tools on macOS, `build-essential` on
+  Linux, or MSVC Build Tools on Windows
+- CMake and git on PATH
+- a vision-capable GGUF model and its matching projector (`mmproj-*.gguf`)
+- ffmpeg and ffprobe on PATH for video helpers
+
+The first install compiles llama.cpp and can take several minutes. Later
+installs can reuse the local build cache.
+
+## Install from npm
 
 ```bash
 pnpm add llama.cpp-ts
 ```
 
-With CUDA (NVIDIA GPUs; Metal needs nothing on macOS):
+The package is published to the npm registry. The examples here use pnpm, but
+the package can be installed by any npm-registry client.
+
+With CUDA on NVIDIA GPUs, pass the llama.cpp CMake option during install. Metal
+is enabled by default on macOS.
 
 ```bash
 CMAKE_ARGS="GGML_CUDA=ON" pnpm add llama.cpp-ts
 ```
 
-CI jobs that only lint or release can skip the native build with
-`LLAMA_VISION_SKIP_BUILD=1`.
+CI jobs that only type-check, lint, or publish package metadata can skip native
+compilation with `LLAMA_VISION_SKIP_BUILD=1`.
 
 ## Usage
 
-### Load once, generate many
+### Load once, then generate
 
-Loading takes seconds; generation takes on the order of a second. Keep one
-instance alive for the life of your process - that is the entire
-performance model.
+Model loading is the expensive step. Keep one `LlamaVision` instance alive for
+the work your process needs to do, then call `generate()`, `describeImage()`, or
+`describeVideo()` for independent requests. The library does not keep chat
+history between calls. If a later prompt needs an image again, pass the image
+path again.
 
 ```js
 const { LlamaVision } = require('llama.cpp-ts');
@@ -64,7 +77,7 @@ const llama = await LlamaVision.load({
 });
 ```
 
-### Generate, with optional streaming
+### Generate with optional streaming
 
 ```js
 const result = await llama.generate({
@@ -76,7 +89,8 @@ const result = await llama.generate({
 // result: { text, promptTokenCount, generatedTokenCount, truncated }
 ```
 
-Or as an async iterator:
+For `for await` consumers, `stream()` exposes generated pieces as an async
+iterator:
 
 ```js
 for await (const piece of llama.stream({ prompt: 'Describe this.',
@@ -85,8 +99,8 @@ for await (const piece of llama.stream({ prompt: 'Describe this.',
 }
 ```
 
-Text-only prompts work too - omit `imagePaths` and this is a plain local
-LLM.
+Text-only prompts work too. Omit `imagePaths` and the same engine behaves like a
+local LLM over the loaded model.
 
 ### Video
 
@@ -94,28 +108,38 @@ LLM.
 const summary = await llama.describeVideo('/abs/clip.mp4');
 ```
 
-Frames are sampled with ffmpeg (up to 8 by default, spread across the
-video), described in order, and cleaned up automatically. This is
-keyframe-level understanding, not motion reasoning; each frame costs a few
-hundred prompt tokens, and `result.promptTokenCount` tells you what a call
-actually cost. For manual control, `extractVideoFrames()` /
-`cleanupVideoFrames()` are exported.
+`describeVideo()` samples frames with ffmpeg, sends those frames to the same
+image generation path, and removes the temporary frames after generation
+returns. By default it samples up to 8 frames spread across the video. This is
+frame-level visual understanding rather than native motion reasoning. Each
+sampled frame consumes prompt tokens, so check `result.promptTokenCount` for the
+actual cost of a video call.
 
-### Using from an MCP server
+For manual control, use the exported `extractVideoFrames()` and
+`cleanupVideoFrames()` helpers. Keep extracted frames on disk until after
+`generate()` returns because the native generation call reads the image files
+during generation.
 
-An MCP server is a long-lived process - the ideal host. Load at startup,
-call per tool invocation, and don't worry about overlap: **calls on one
-instance are automatically queued**, so concurrent tool calls are safe and
-run one after another.
+### Long-running Node processes
+
+This package fits long-running Node processes well. Load the model during
+startup, then call the engine from each command or tool invocation. Calls on one
+instance are automatically queued, so overlapping requests are safe and run one
+after another. Create separate instances only when you intentionally want
+separate native engines loaded in memory.
 
 ## Error handling
 
-Failures reject with a descriptive `Error`; generation errors also carry
-whatever was produced before the failure as `error.partialText`. The
-common failure modes are a mismatched model/projector pair (rejects at
-load), unsupported image formats (WebP/JXL - the bundled decoder handles
-JPEG/PNG/BMP/TGA/GIF), and prompts exceeding the context (the message
-includes the exact token count; raise `contextSize` or send fewer images).
+Failures reject with `Error`. Generation errors may also include
+`error.partialText` with text produced before the failure. Common failure modes
+are:
+
+- mismatched model/projector files, usually caught during load
+- unsupported image formats, because the bundled decoder handles
+  JPEG/PNG/BMP/TGA/GIF but not WebP or JXL
+- prompts that exceed the configured context window, especially multi-image or
+  video prompts
+- missing ffmpeg or ffprobe when using video helpers
 
 ## API summary
 
@@ -127,10 +151,13 @@ result · `llama.describeImage(path, prompt?, options?)` ·
 `extractVideoFrames(path, options?)` / `cleanupVideoFrames(frames)` ·
 `mediaMarker` (place images manually inside a prompt).
 
-All option fields and defaults are documented in the TypeScript types
-(`dist/index.d.ts`).
+The generated TypeScript declarations (`dist/index.d.ts`) are the API reference
+for option fields and defaults.
 
 ## Development
+
+This repository uses pnpm for development. The native addon links against the
+vendored `llame-worker` source under `cpp/externals/llame-worker`.
 
 ```bash
 git clone --recurse-submodules https://github.com/developer239/llama.cpp-ts
@@ -140,10 +167,12 @@ pnpm run build:ts     # compiles src/index.ts -> dist/
 pnpm run example
 ```
 
-The development example mirrors the plain CMake consumer: it loads the model
-once from `example/models/`, then runs a text prompt, an image prompt against
-`example/images/input.jpg`, and a six-frame video prompt against
-`example/images/input.mp4`.
+The development example mirrors the plain CMake consumer in
+`llame-worker-example`: it loads the model once, then runs a text prompt, an
+image prompt against `example/images/input.jpg`, and a six-frame video prompt
+against `example/images/input.mp4`. The sample image and video are checked in.
+The GGUF model files are not checked in; put them in `example/models/` or
+symlink them from a local model directory.
 
 The native pin lives in `scripts/install.js` (`LLAME_WORKER_REF`); bump it
 together with the `cpp/externals/llame-worker` submodule.
