@@ -58,6 +58,23 @@ compilation with `LLAMEWORKER_SKIP_BUILD=1`.
 
 ## Usage
 
+### Migration note
+
+The exported engine class is `LlameWorker`. Older examples that imported
+`LlamaVision` must update the import and constructor call:
+
+```js
+const { LlameWorker } = require('llama.cpp-ts');
+
+const llameworker = await LlameWorker.load({
+  modelPath: '/abs/model.gguf',
+  projectorPath: '/abs/mmproj.gguf',
+});
+```
+
+Build-only CI jobs should use `LLAMEWORKER_SKIP_BUILD=1` to skip native
+compilation.
+
 ### Load once, then prompt
 
 Model loading is the expensive step. Keep one `LlameWorker` instance alive for
