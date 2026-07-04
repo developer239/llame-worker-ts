@@ -56,6 +56,7 @@ llameworker::VisionModelParams ReadModelParams(const Napi::Object& source) {
   ReadInt(source, "threadCount", params.threadCount);
   ReadString(source, "systemPrompt", params.systemPrompt);
   ReadBool(source, "verbose", params.verbose);
+
   return params;
 }
 
@@ -79,6 +80,7 @@ llameworker::PromptParams ReadPromptParams(const Napi::Object& source) {
   ReadFloat(source, "repeatPenalty", params.repeatPenalty);
   ReadUint(source, "seed", params.seed);
   ReadString(source, "systemPromptOverride", params.systemPromptOverride);
+
   return params;
 }
 
@@ -253,6 +255,7 @@ Napi::Object EngineBinding::Init(Napi::Env env, Napi::Object exports) {
       "mediaMarker",
       Napi::String::New(
           env, std::string(llameworker::LlameWorker::mediaMarker())));
+
   return exports;
 }
 
@@ -268,14 +271,17 @@ Napi::Value EngineBinding::Load(const Napi::CallbackInfo& info) {
         .ThrowAsJavaScriptException();
     return env.Undefined();
   }
+
   if (busy->exchange(true)) {
     Napi::Error::New(env, "another operation is in progress on this engine")
         .ThrowAsJavaScriptException();
     return env.Undefined();
   }
+
   auto* worker = new LoadWorker(
       env, engine, busy, ReadModelParams(info[0].As<Napi::Object>()));
   worker->Queue();
+
   return worker->Promise();
 }
 
@@ -286,19 +292,23 @@ Napi::Value EngineBinding::Prompt(const Napi::CallbackInfo& info) {
         .ThrowAsJavaScriptException();
     return env.Undefined();
   }
+
   Napi::Function onToken;
   if (info.Length() > 1 && info[1].IsFunction()) {
     onToken = info[1].As<Napi::Function>();
   }
+
   if (busy->exchange(true)) {
     Napi::Error::New(env, "another operation is in progress on this engine")
         .ThrowAsJavaScriptException();
     return env.Undefined();
   }
+
   auto* worker = new PromptWorker(
       env, engine, busy, ReadPromptParams(info[0].As<Napi::Object>()),
       onToken);
   worker->Queue();
+
   return worker->Promise();
 }
 
@@ -309,8 +319,10 @@ Napi::Value EngineBinding::Unload(const Napi::CallbackInfo& info) {
         .ThrowAsJavaScriptException();
     return env.Undefined();
   }
+
   auto* worker = new UnloadWorker(env, engine, busy);
   worker->Queue();
+
   return worker->Promise();
 }
 

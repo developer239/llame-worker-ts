@@ -139,8 +139,10 @@ export class LlameWorker {
           'multimodal models'
       );
     }
+
     const instance = new LlameWorker(new binding.NativeEngine());
     await instance.#enqueue(() => instance.#native.load(options));
+
     return instance;
   }
 
@@ -240,6 +242,7 @@ export class LlameWorker {
     }
 
     if (failure) throw failure;
+
     return result as PromptResult;
   }
 
