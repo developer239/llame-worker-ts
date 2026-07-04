@@ -5,8 +5,12 @@
 /cpp/cmake-build-debug/
 
 /node_modules/
+/dist/
 
 /example/models
+/example/images
 
 /.opencode
 /AGENTS.md
+
+/package-lock.json
