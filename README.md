@@ -33,13 +33,13 @@ ggml-org Hugging Face repos. For video, install `ffmpeg` (with `ffprobe`).
 ## Installation
 
 ```bash
-npm install llama.cpp-ts
+pnpm add llama.cpp-ts
 ```
 
 With CUDA (NVIDIA GPUs; Metal needs nothing on macOS):
 
 ```bash
-CMAKE_ARGS="GGML_CUDA=ON" npm install llama.cpp-ts
+CMAKE_ARGS="GGML_CUDA=ON" pnpm add llama.cpp-ts
 ```
 
 CI jobs that only lint or release can skip the native build with
@@ -135,10 +135,15 @@ All option fields and defaults are documented in the TypeScript types
 ```bash
 git clone --recurse-submodules https://github.com/developer239/llama.cpp-ts
 cd llama.cpp-ts
-npm install          # builds the native addon from the submodule
-npm run build:ts     # compiles src/index.ts -> dist/
-npm run example
+pnpm install          # builds the native addon from the submodule
+pnpm run build:ts     # compiles src/index.ts -> dist/
+pnpm run example
 ```
+
+The development example mirrors the plain CMake consumer: it loads the model
+once from `example/models/`, then runs a text prompt, an image prompt against
+`example/images/input.jpg`, and a six-frame video prompt against
+`example/images/input.mp4`.
 
 The native pin lives in `scripts/install.js` (`LLAME_WORKER_REF`); bump it
 together with the `cpp/externals/llame-worker` submodule.

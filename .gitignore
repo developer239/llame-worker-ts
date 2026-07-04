@@ -8,7 +8,9 @@
 /dist/
 
 /example/models
-/example/images
+/example/images/*
+!/example/images/input.jpg
+!/example/images/input.mp4
 
 /.opencode
 /AGENTS.md

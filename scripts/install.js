@@ -29,7 +29,7 @@ function run(command, args, options = {}) {
   if (result.error && result.error.code === 'ENOENT') {
     fail(
       `'${command}' was not found on PATH. Install it, then run: ` +
-        'npm rebuild llama.cpp-ts'
+        'pnpm rebuild llama.cpp-ts'
     );
   }
   if (result.status !== 0) {
@@ -94,7 +94,7 @@ if (
 }
 
 // 3) Compile. Extra CMake defines pass through CMAKE_ARGS, e.g.:
-//      CMAKE_ARGS="GGML_CUDA=ON" npm install llama.cpp-ts
+//      CMAKE_ARGS="GGML_CUDA=ON" pnpm add llama.cpp-ts
 const cmakeJs = require.resolve('cmake-js/bin/cmake-js');
 const extraDefines = (process.env.CMAKE_ARGS || '')
   .split(/\s+/)

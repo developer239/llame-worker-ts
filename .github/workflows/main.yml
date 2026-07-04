@@ -14,16 +14,22 @@ jobs:
         with:
           token: ${{ secrets.GH_TOKEN }}
 
+      - name: Set up pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 9.15.9
+
       - name: Set up Node.js
         uses: actions/setup-node@v2
         with:
           node-version: 18
+          cache: pnpm
 
       - name: Install dependencies
-        run: yarn install --ignore-scripts
+        run: pnpm install --ignore-scripts --frozen-lockfile
 
       - name: Semantic release
-        run: npx semantic-release
+        run: pnpm exec semantic-release
         env:
           GITHUB_TOKEN: ${{ secrets.GH_TOKEN }}
           NPM_TOKEN: ${{ secrets.NPM_TOKEN }}

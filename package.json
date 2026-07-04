@@ -14,6 +14,7 @@
     "README.md"
   ],
   "private": false,
+  "packageManager": "pnpm@9.15.9",
   "publishConfig": {
     "access": "public"
   },
@@ -22,10 +23,10 @@
   },
   "scripts": {
     "postinstall": "node scripts/install.js",
-    "build": "npm run build:ts && npm run build:native",
+    "build": "pnpm run build:ts && pnpm run build:native",
     "build:ts": "tsc",
     "build:native": "cmake-js compile -d cpp",
-    "prepublishOnly": "npm run build:ts",
+    "prepublishOnly": "pnpm run build:ts",
     "example": "node example/index.js"
   },
   "dependencies": {
