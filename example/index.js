@@ -9,11 +9,7 @@
 //   pnpm run example
 
 const path = require('node:path');
-const {
-  cleanupVideoFrames,
-  extractVideoFrames,
-  LlamaVision,
-} = require('..');
+const { LlamaVision } = require('..');
 
 const modelPath = path.join(__dirname, 'models', 'gemma-3-4b-it-f16.gguf');
 const projectorPath = path.join(__dirname, 'models', 'mmproj-model-f16.gguf');
@@ -52,25 +48,29 @@ async function main() {
       `${described.generatedTokenCount} generated)\n`);
 
     console.log(`=== 3. Video (${videoPath}) ===`);
-    const frames = await extractVideoFrames(videoPath, { maxFrames: 6 });
-    console.log(`(sampled ${frames.framePaths.length} frames)`);
+    const videoPrompt = 'These images are frames sampled from a single video, in order. ' +
+      'Study them and reason about the sequence: is this one continuous ' +
+      'scene or several distinct scenes? What is happening in each scene? ' +
+      'How are the frames connected to one another - what changes from one ' +
+      'to the next, and what stays the same, including between the first ' +
+      'frame and the last? Be as precise as possible.';
 
-    try {
-      const summary = await llama.prompt({
-        prompt: 'These images are frames sampled from a single video, in order. ' +
-          'Study them and reason about the sequence: is this one continuous ' +
-          'scene or several distinct scenes? What is happening in each scene? ' +
-          'How are the frames connected to one another - what changes from one ' +
-          'to the next, and what stays the same, including between the first ' +
-          'frame and the last? Be as precise as possible.',
-        imagePaths: frames.framePaths,
-        onToken: printPiece,
-      });
-      console.log('\n');
-      console.log(`(${summary.promptTokenCount} prompt tokens for ` +
-        `${frames.framePaths.length} frames)`);
-    } finally {
-      await cleanupVideoFrames(frames);
+    const summary = await llama.describeVideo(videoPath, videoPrompt, {
+      onToken: printPiece,
+    }, { maxFrames: 6 });
+    console.log('\n');
+    console.log(`(${summary.promptTokenCount} prompt tokens)\n`);
+
+    console.log(`=== 4. Streaming video (${videoPath}) ===`);
+    const stream = llama.streamVideo(videoPath, videoPrompt, {}, { maxFrames: 6 });
+    for (;;) {
+      const next = await stream.next();
+      if (next.done) {
+        console.log('\n');
+        console.log(`(${next.value.promptTokenCount} prompt tokens)`);
+        break;
+      }
+      printPiece(next.value);
     }
   } finally {
     await llama.unload();

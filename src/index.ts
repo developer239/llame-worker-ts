@@ -243,6 +243,47 @@ export class LlamaVision {
     return result as PromptResult;
   }
 
+  /**
+   * Extracts frames from one video, streams generation pieces, and cleans the
+   * frames up after the queued prompt completes.
+   */
+  async *streamVideo(
+    videoPath: string,
+    prompt: string = DESCRIBE_VIDEO_PROMPT,
+    options: Omit<PromptOptions, 'prompt' | 'imagePaths' | 'onToken'> = {},
+    frameOptions: VideoFrameOptions = {}
+  ): AsyncGenerator<string, PromptResult> {
+    const frames = await extractVideoFrames(videoPath, frameOptions);
+    let completed = false;
+    const stream = this.stream({
+      ...options,
+      prompt,
+      imagePaths: frames.framePaths,
+    });
+
+    try {
+      for (;;) {
+        const next = await stream.next();
+        if (next.done === true) {
+          completed = true;
+          return next.value;
+        }
+        yield next.value;
+      }
+    } finally {
+      try {
+        if (!completed) {
+          for (;;) {
+            const next = await stream.next();
+            if (next.done === true) break;
+          }
+        }
+      } finally {
+        await cleanupVideoFrames(frames);
+      }
+    }
+  }
+
   /** Frees the model. Create a new instance via load() to load again. */
   unload(): Promise<void> {
     return this.#enqueue(() => this.#native.unload());

@@ -115,6 +115,35 @@ frame-level visual understanding rather than native motion reasoning. Each
 sampled frame consumes prompt tokens, so check `result.promptTokenCount` for the
 actual cost of a video call.
 
+Pass a custom prompt when the default summary is not specific enough:
+
+```js
+await llama.describeImage('/abs/screenshot.png', 'Read every visible error.');
+
+await llama.describeVideo(
+  '/abs/clip.mp4',
+  'Describe the UI actions in this screen recording.',
+);
+```
+
+For streaming video output, use `streamVideo()`:
+
+```js
+const stream = llama.streamVideo(
+  '/abs/clip.mp4',
+  'Describe the visible scene changes.',
+);
+
+for (;;) {
+  const next = await stream.next();
+  if (next.done) {
+    console.log(next.value.promptTokenCount);
+    break;
+  }
+  process.stdout.write(next.value);
+}
+```
+
 For manual control, use the exported `extractVideoFrames()` and
 `cleanupVideoFrames()` helpers. Keep extracted frames on disk until after
 `prompt()` returns because the native generation call reads the image files
@@ -146,7 +175,8 @@ are:
 `LlamaVision.load(options)` -> instance · `llama.prompt(options)` ->
 result · `llama.describeImage(path, prompt?, options?)` ·
 `llama.describeVideo(path, prompt?, options?, frameOptions?)` ·
-`llama.stream(options)` -> async iterator of pieces ·
+`llama.stream(options)` / `llama.streamVideo(path, prompt?, options?, frameOptions?)`
+-> async iterator of pieces ·
 `llama.loaded` · `llama.unload()` ·
 `extractVideoFrames(path, options?)` / `cleanupVideoFrames(frames)` ·
 `mediaMarker` (place images manually inside a prompt).
