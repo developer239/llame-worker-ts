@@ -1,6 +1,6 @@
 // llama.cpp-ts - local multimodal inference for Node over the LlamaVision
-// C++ core (llame-worker). One-off prompts: load once, generate many; every
-// generation is independent of the previous one.
+// C++ core (llame-worker). One-off prompts: load once, prompt many times; every
+// prompt is independent of the previous one.
 
 import { execFile } from 'node:child_process';
 import { mkdtemp, readdir, rm } from 'node:fs/promises';
@@ -29,13 +29,13 @@ export interface LoadOptions {
   batchSize?: number;
   /** 0 (default) = hardware concurrency. */
   threadCount?: number;
-  /** Applied to every generate() unless overridden per call. */
+  /** Applied to every prompt() unless overridden per call. */
   systemPrompt?: string;
   /** true re-enables llama.cpp logging (process-global). */
   verbose?: boolean;
 }
 
-export interface GenerateOptions {
+export interface PromptOptions {
   prompt?: string;
   /** Absolute paths. JPEG/PNG/BMP/TGA/GIF - WebP and JXL are unsupported. */
   imagePaths?: string[];
@@ -53,7 +53,7 @@ export interface GenerateOptions {
   onToken?: (piece: string) => void;
 }
 
-export interface GenerateResult {
+export interface PromptResult {
   text: string;
   promptTokenCount: number;
   generatedTokenCount: number;
@@ -61,8 +61,8 @@ export interface GenerateResult {
   truncated: boolean;
 }
 
-/** Rejections from generate() may carry the partial output. */
-export type GenerationError = Error & { partialText?: string };
+/** Rejections from prompt() may carry the partial output. */
+export type PromptError = Error & { partialText?: string };
 
 export interface VideoFrameOptions {
   /** Hard cap on extracted frames (default 8). */
@@ -87,9 +87,9 @@ export interface VideoFrames {
 interface NativeEngine {
   load(options: LoadOptions): Promise<void>;
   generate(
-    options: Omit<GenerateOptions, 'onToken'>,
+    options: Omit<PromptOptions, 'onToken'>,
     onToken?: (piece: string) => void
-  ): Promise<GenerateResult>;
+  ): Promise<PromptResult>;
   unload(): Promise<void>;
   isLoaded(): boolean;
 }
@@ -127,7 +127,7 @@ export class LlamaVision {
 
   /**
    * Loads the model and projector (the expensive step - seconds). Keep the
-   * returned instance alive and reuse it; every call after load is fast.
+   * returned instance alive and reuse it; every prompt after load is fast.
    */
   static async load(options: LoadOptions): Promise<LlamaVision> {
     if (!options?.modelPath) {
@@ -149,10 +149,10 @@ export class LlamaVision {
   }
 
   /**
-   * One-off generation. Calls are automatically serialized: the engine runs
-   * one generation at a time, so overlapping calls simply queue.
+   * One-off prompt. Calls are automatically serialized: the engine runs
+   * one prompt at a time, so overlapping calls simply queue.
    */
-  generate(options: GenerateOptions): Promise<GenerateResult> {
+  prompt(options: PromptOptions): Promise<PromptResult> {
     const { onToken, ...params } = options ?? {};
     return this.#enqueue(() => this.#native.generate(params, onToken));
   }
@@ -161,9 +161,9 @@ export class LlamaVision {
   describeImage(
     imagePath: string,
     prompt: string = DESCRIBE_IMAGE_PROMPT,
-    options: Omit<GenerateOptions, 'prompt' | 'imagePaths'> = {}
-  ): Promise<GenerateResult> {
-    return this.generate({ ...options, prompt, imagePaths: [imagePath] });
+    options: Omit<PromptOptions, 'prompt' | 'imagePaths'> = {}
+  ): Promise<PromptResult> {
+    return this.prompt({ ...options, prompt, imagePaths: [imagePath] });
   }
 
   /**
@@ -173,12 +173,12 @@ export class LlamaVision {
   async describeVideo(
     videoPath: string,
     prompt: string = DESCRIBE_VIDEO_PROMPT,
-    options: Omit<GenerateOptions, 'prompt' | 'imagePaths'> = {},
+    options: Omit<PromptOptions, 'prompt' | 'imagePaths'> = {},
     frameOptions: VideoFrameOptions = {}
-  ): Promise<GenerateResult> {
+  ): Promise<PromptResult> {
     const frames = await extractVideoFrames(videoPath, frameOptions);
     try {
-      return await this.generate({
+      return await this.prompt({
         ...options,
         prompt,
         imagePaths: frames.framePaths,
@@ -190,19 +190,19 @@ export class LlamaVision {
 
   /**
    * Streams token pieces as they are generated. The generator's return
-   * value is the full GenerateResult. Note: breaking out of the loop stops
-   * consumption, not generation - the queued call still runs to completion.
+   * value is the full PromptResult. Note: breaking out of the loop stops
+   * consumption, not generation - the queued prompt still runs to completion.
    */
   async *stream(
-    options: Omit<GenerateOptions, 'onToken'>
-  ): AsyncGenerator<string, GenerateResult> {
+    options: Omit<PromptOptions, 'onToken'>
+  ): AsyncGenerator<string, PromptResult> {
     const pieces: string[] = [];
     let wake: (() => void) | undefined;
     let finished = false;
     let failure: unknown;
-    let result: GenerateResult | undefined;
+    let result: PromptResult | undefined;
 
-    this.generate({
+    this.prompt({
       ...options,
       onToken: (piece) => {
         pieces.push(piece);
@@ -240,7 +240,7 @@ export class LlamaVision {
     }
 
     if (failure) throw failure;
-    return result as GenerateResult;
+    return result as PromptResult;
   }
 
   /** Frees the model. Create a new instance via load() to load again. */
@@ -250,7 +250,7 @@ export class LlamaVision {
 
   #enqueue<T>(operation: () => Promise<T>): Promise<T> {
     // Run after the previous operation regardless of how it settled; one
-    // failed generation must not poison the queue.
+    // failed prompt must not poison the queue.
     const next = this.#queue.then(operation, operation);
     this.#queue = next.catch(() => undefined);
     return next;

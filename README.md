@@ -5,7 +5,7 @@ a small C++ wrapper around [llama.cpp](https://github.com/ggml-org/llama.cpp)'s
 multimodal API. Use it when a Node process needs local one-off prompts over a
 GGUF model: text, images, or video frames. There is no server process and no API
 account. Your process loads the model once, then sends independent generation
-requests to the native addon.
+prompts to the native addon.
 
 ```js
 const { LlamaVision } = require('llama.cpp-ts');
@@ -58,10 +58,10 @@ compilation with `LLAMA_VISION_SKIP_BUILD=1`.
 
 ## Usage
 
-### Load once, then generate
+### Load once, then prompt
 
 Model loading is the expensive step. Keep one `LlamaVision` instance alive for
-the work your process needs to do, then call `generate()`, `describeImage()`, or
+the work your process needs to do, then call `prompt()`, `describeImage()`, or
 `describeVideo()` for independent requests. The library does not keep chat
 history between calls. If a later prompt needs an image again, pass the image
 path again.
@@ -77,10 +77,10 @@ const llama = await LlamaVision.load({
 });
 ```
 
-### Generate with optional streaming
+### Prompt with optional streaming
 
 ```js
-const result = await llama.generate({
+const result = await llama.prompt({
   prompt: 'What changed between these two screenshots?',
   imagePaths: ['/tmp/before.png', '/tmp/after.png'],
   maxTokens: 300,
@@ -117,7 +117,7 @@ actual cost of a video call.
 
 For manual control, use the exported `extractVideoFrames()` and
 `cleanupVideoFrames()` helpers. Keep extracted frames on disk until after
-`generate()` returns because the native generation call reads the image files
+`prompt()` returns because the native generation call reads the image files
 during generation.
 
 ### Long-running Node processes
@@ -143,7 +143,7 @@ are:
 
 ## API summary
 
-`LlamaVision.load(options)` -> instance · `llama.generate(options)` ->
+`LlamaVision.load(options)` -> instance · `llama.prompt(options)` ->
 result · `llama.describeImage(path, prompt?, options?)` ·
 `llama.describeVideo(path, prompt?, options?, frameOptions?)` ·
 `llama.stream(options)` -> async iterator of pieces ·

@@ -34,7 +34,7 @@ async function main() {
 
   try {
     console.log('=== 1. Simple text prompt ===');
-    await llama.generate({
+    await llama.prompt({
       prompt: 'In one sentence, what is a capybara?',
       maxTokens: 100,
       onToken: printPiece,
@@ -56,7 +56,7 @@ async function main() {
     console.log(`(sampled ${frames.framePaths.length} frames)`);
 
     try {
-      const summary = await llama.generate({
+      const summary = await llama.prompt({
         prompt: 'These images are frames sampled from a single video, in order. ' +
           'Study them and reason about the sequence: is this one continuous ' +
           'scene or several distinct scenes? What is happening in each scene? ' +
