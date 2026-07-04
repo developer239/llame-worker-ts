@@ -60,8 +60,8 @@ compilation with `LLAMEWORKER_SKIP_BUILD=1`.
 
 ### Migration note
 
-The exported engine class is `LlameWorker`. Older examples that imported
-`LlamaVision` must update the import and constructor call:
+The exported engine class is `LlameWorker`. Older examples that imported the
+previous engine class must update the import and constructor call:
 
 ```js
 const { LlameWorker } = require('llama.cpp-ts');
