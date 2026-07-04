@@ -5,13 +5,13 @@
 #include <utility>
 #include <vector>
 
-#include "llama-vision.h"
+#include "llameworker.h"
 
 namespace {
 
 // ---- Option readers: only overwrite the C++ defaults when the JS object
 // actually carries the key, so defaults live in exactly one place (the
-// llama-vision.h structs). ----
+// llameworker.h structs). ----
 
 void ReadString(const Napi::Object& source, const char* key,
                 std::string& out) {
@@ -85,7 +85,7 @@ PromptParams ReadPromptParams(const Napi::Object& source) {
 
 class LoadWorker : public Napi::AsyncWorker {
  public:
-  LoadWorker(Napi::Env env, std::shared_ptr<LlamaVision> engine,
+  LoadWorker(Napi::Env env, std::shared_ptr<LlameWorker> engine,
              std::shared_ptr<std::atomic<bool>> busy,
              VisionModelParams params)
       : Napi::AsyncWorker(env),
@@ -118,7 +118,7 @@ class LoadWorker : public Napi::AsyncWorker {
 
  private:
   Napi::Promise::Deferred deferred;
-  std::shared_ptr<LlamaVision> engine;
+  std::shared_ptr<LlameWorker> engine;
   std::shared_ptr<std::atomic<bool>> busy;
   VisionModelParams params;
   bool succeeded = false;
@@ -127,7 +127,7 @@ class LoadWorker : public Napi::AsyncWorker {
 
 class UnloadWorker : public Napi::AsyncWorker {
  public:
-  UnloadWorker(Napi::Env env, std::shared_ptr<LlamaVision> engine,
+  UnloadWorker(Napi::Env env, std::shared_ptr<LlameWorker> engine,
                std::shared_ptr<std::atomic<bool>> busy)
       : Napi::AsyncWorker(env),
         deferred(Napi::Promise::Deferred::New(env)),
@@ -151,13 +151,13 @@ class UnloadWorker : public Napi::AsyncWorker {
 
  private:
   Napi::Promise::Deferred deferred;
-  std::shared_ptr<LlamaVision> engine;
+  std::shared_ptr<LlameWorker> engine;
   std::shared_ptr<std::atomic<bool>> busy;
 };
 
 class PromptWorker : public Napi::AsyncWorker {
  public:
-  PromptWorker(Napi::Env env, std::shared_ptr<LlamaVision> engine,
+  PromptWorker(Napi::Env env, std::shared_ptr<LlameWorker> engine,
                std::shared_ptr<std::atomic<bool>> busy,
                PromptParams params, Napi::Function onToken)
       : Napi::AsyncWorker(env),
@@ -167,7 +167,7 @@ class PromptWorker : public Napi::AsyncWorker {
         params(std::move(params)) {
     if (!onToken.IsEmpty()) {
       tokenFn = Napi::ThreadSafeFunction::New(
-          env, onToken, "llama-vision-token",
+          env, onToken, "llameworker-token",
           /*max_queue_size=*/0, /*initial_thread_count=*/1);
       hasTokenFn = true;
     }
@@ -225,7 +225,7 @@ class PromptWorker : public Napi::AsyncWorker {
   }
 
   Napi::Promise::Deferred deferred;
-  std::shared_ptr<LlamaVision> engine;
+  std::shared_ptr<LlameWorker> engine;
   std::shared_ptr<std::atomic<bool>> busy;
   PromptParams params;
   Napi::ThreadSafeFunction tokenFn;
@@ -249,13 +249,13 @@ Napi::Object EngineBinding::Init(Napi::Env env, Napi::Object exports) {
 
   exports.Set("NativeEngine", constructor);
   exports.Set("mediaMarker",
-              Napi::String::New(env, LlamaVision::MediaMarker()));
+              Napi::String::New(env, LlameWorker::MediaMarker()));
   return exports;
 }
 
 EngineBinding::EngineBinding(const Napi::CallbackInfo& info)
     : Napi::ObjectWrap<EngineBinding>(info),
-      engine(std::make_shared<LlamaVision>()),
+      engine(std::make_shared<LlameWorker>()),
       busy(std::make_shared<std::atomic<bool>>(false)) {}
 
 Napi::Value EngineBinding::Load(const Napi::CallbackInfo& info) {

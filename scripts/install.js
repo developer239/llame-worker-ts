@@ -14,7 +14,7 @@ const { existsSync, rmSync } = require('node:fs');
 const path = require('node:path');
 
 const LLAME_WORKER_REPO = 'https://github.com/developer239/llame-worker.git';
-const LLAME_WORKER_REF = 'e1d72bd951afe1447c436ed0f488a8c488882171';
+const LLAME_WORKER_REF = 'fffb0332fd15a634733aeb28596e987a1c14e5ca';
 
 const rootDir = path.join(__dirname, '..');
 const vendorDir = path.join(rootDir, 'cpp', 'externals', 'llame-worker');
@@ -47,8 +47,8 @@ function isAvailable(command) {
   return !result.error && result.status === 0;
 }
 
-if (process.env.LLAMA_VISION_SKIP_BUILD === '1') {
-  console.log('[llama.cpp-ts] LLAMA_VISION_SKIP_BUILD=1 - skipping build.');
+if (process.env.LLAMEWORKER_SKIP_BUILD === '1') {
+  console.log('[llama.cpp-ts] LLAMEWORKER_SKIP_BUILD=1 - skipping build.');
   process.exit(0);
 }
 

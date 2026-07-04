@@ -5,9 +5,9 @@
 #include <atomic>
 #include <memory>
 
-class LlamaVision;
+class LlameWorker;
 
-// Minimal Node-API surface over the LlamaVision engine. All ergonomics
+// Minimal Node-API surface over the llameworker engine. All ergonomics
 // (call queueing, async iteration, video, defaults documentation) live in
 // the TypeScript layer; this class only marshals values and moves work off
 // the event loop.
@@ -25,7 +25,7 @@ class EngineBinding : public Napi::ObjectWrap<EngineBinding> {
   // Shared with in-flight workers so the engine cannot be destroyed (or the
   // JS wrapper garbage-collected) out from under a running generation -
   // the use-after-free the v1 detached thread allowed.
-  std::shared_ptr<LlamaVision> engine;
+  std::shared_ptr<LlameWorker> engine;
 
   // One operation at a time per instance. The TypeScript wrapper already
   // serializes; this guard protects direct users of the raw addon.

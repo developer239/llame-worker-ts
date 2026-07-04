@@ -1,4 +1,4 @@
-// llama.cpp-ts - local multimodal inference for Node over the LlamaVision
+// llama.cpp-ts - local multimodal inference for Node over the llameworker
 // C++ core (llame-worker). One-off prompts: load once, prompt many times; every
 // prompt is independent of the previous one.
 
@@ -102,7 +102,7 @@ interface NativeBinding {
 // Built into cpp/build/Release by scripts/install.js at install time.
 // eslint-disable-next-line @typescript-eslint/no-var-requires
 const binding =
-  require('../cpp/build/Release/llama_vision_node.node') as NativeBinding;
+  require('../cpp/build/Release/llameworker_node.node') as NativeBinding;
 
 /**
  * The literal marker that stands for "an image goes here" inside a prompt.
@@ -117,7 +117,7 @@ const DESCRIBE_VIDEO_PROMPT =
   'These images are frames sampled from one video, in order. ' +
   'Describe what happens.';
 
-export class LlamaVision {
+export class LlameWorker {
   #native: NativeEngine;
   #queue: Promise<unknown> = Promise.resolve();
 
@@ -129,7 +129,7 @@ export class LlamaVision {
    * Loads the model and projector (the expensive step - seconds). Keep the
    * returned instance alive and reuse it; every prompt after load is fast.
    */
-  static async load(options: LoadOptions): Promise<LlamaVision> {
+  static async load(options: LoadOptions): Promise<LlameWorker> {
     if (!options?.modelPath) {
       throw new TypeError('modelPath is required');
     }
@@ -139,7 +139,7 @@ export class LlamaVision {
           'multimodal models'
       );
     }
-    const instance = new LlamaVision(new binding.NativeEngine());
+    const instance = new LlameWorker(new binding.NativeEngine());
     await instance.#enqueue(() => instance.#native.load(options));
     return instance;
   }
@@ -340,7 +340,7 @@ export async function extractVideoFrames(
     maxSampleFps
   );
 
-  const directory = await mkdtemp(path.join(tmpdir(), 'llama-vision-frames-'));
+  const directory = await mkdtemp(path.join(tmpdir(), 'llameworker-frames-'));
 
   // min(...) in the scale expression prevents upscaling; the single quotes
   // are consumed by ffmpeg's filtergraph parser (there is no shell here).

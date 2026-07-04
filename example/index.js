@@ -1,4 +1,4 @@
-// LlamaVision integration example.
+// llameworker integration example.
 //
 // A guided tour of the v2 API with hard-coded targets (no CLI params):
 // one-time model load (the expensive step), then three tests in order -
@@ -9,7 +9,7 @@
 //   pnpm run example
 
 const path = require('node:path');
-const { LlamaVision } = require('..');
+const { LlameWorker } = require('..');
 
 const modelPath = path.join(__dirname, 'models', 'gemma-3-4b-it-f16.gguf');
 const projectorPath = path.join(__dirname, 'models', 'mmproj-model-f16.gguf');
@@ -20,7 +20,7 @@ const printPiece = (piece) => process.stdout.write(piece);
 
 async function main() {
   const startedAt = Date.now();
-  const llama = await LlamaVision.load({
+  const llameworker = await LlameWorker.load({
     modelPath,
     projectorPath,
     systemPrompt: 'You are a helpful assistant. Answer clearly and to the point.',
@@ -30,7 +30,7 @@ async function main() {
 
   try {
     console.log('=== 1. Simple text prompt ===');
-    await llama.prompt({
+    await llameworker.prompt({
       prompt: 'In one sentence, what is a capybara?',
       maxTokens: 100,
       onToken: printPiece,
@@ -39,7 +39,7 @@ async function main() {
 
     console.log(`=== 2. Image vision (${imagePath}) ===`);
     const imageStartedAt = Date.now();
-    const described = await llama.describeImage(imagePath, 'Describe this image.', {
+    const described = await llameworker.describeImage(imagePath, 'Describe this image.', {
       onToken: printPiece,
     });
     console.log('\n');
@@ -55,14 +55,14 @@ async function main() {
       'to the next, and what stays the same, including between the first ' +
       'frame and the last? Be as precise as possible.';
 
-    const summary = await llama.describeVideo(videoPath, videoPrompt, {
+    const summary = await llameworker.describeVideo(videoPath, videoPrompt, {
       onToken: printPiece,
     }, { maxFrames: 6 });
     console.log('\n');
     console.log(`(${summary.promptTokenCount} prompt tokens)\n`);
 
     console.log(`=== 4. Streaming video (${videoPath}) ===`);
-    const stream = llama.streamVideo(videoPath, videoPrompt, {}, { maxFrames: 6 });
+    const stream = llameworker.streamVideo(videoPath, videoPrompt, {}, { maxFrames: 6 });
     for (;;) {
       const next = await stream.next();
       if (next.done) {
@@ -73,7 +73,7 @@ async function main() {
       printPiece(next.value);
     }
   } finally {
-    await llama.unload();
+    await llameworker.unload();
   }
 }
 

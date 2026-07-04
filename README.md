@@ -8,14 +8,14 @@ account. Your process loads the model once, then sends independent generation
 prompts to the native addon.
 
 ```js
-const { LlamaVision } = require('llama.cpp-ts');
+const { LlameWorker } = require('llama.cpp-ts');
 
-const llama = await LlamaVision.load({
+const llameworker = await LlameWorker.load({
   modelPath: '/abs/path/gemma-3-4b-it-f16.gguf',
   projectorPath: '/abs/path/mmproj-model-f16.gguf',
 });
 
-const result = await llama.describeImage('/abs/path/screenshot.png');
+const result = await llameworker.describeImage('/abs/path/screenshot.png');
 console.log(result.text);
 ```
 
@@ -54,22 +54,22 @@ CMAKE_ARGS="GGML_CUDA=ON" pnpm add llama.cpp-ts
 ```
 
 CI jobs that only type-check, lint, or publish package metadata can skip native
-compilation with `LLAMA_VISION_SKIP_BUILD=1`.
+compilation with `LLAMEWORKER_SKIP_BUILD=1`.
 
 ## Usage
 
 ### Load once, then prompt
 
-Model loading is the expensive step. Keep one `LlamaVision` instance alive for
+Model loading is the expensive step. Keep one `LlameWorker` instance alive for
 the work your process needs to do, then call `prompt()`, `describeImage()`, or
 `describeVideo()` for independent requests. The library does not keep chat
 history between calls. If a later prompt needs an image again, pass the image
 path again.
 
 ```js
-const { LlamaVision } = require('llama.cpp-ts');
+const { LlameWorker } = require('llama.cpp-ts');
 
-const llama = await LlamaVision.load({
+const llameworker = await LlameWorker.load({
   modelPath: '/abs/model.gguf',
   projectorPath: '/abs/mmproj.gguf',
   contextSize: 4096,          // raise for multi-image / video prompts
@@ -80,7 +80,7 @@ const llama = await LlamaVision.load({
 ### Prompt with optional streaming
 
 ```js
-const result = await llama.prompt({
+const result = await llameworker.prompt({
   prompt: 'What changed between these two screenshots?',
   imagePaths: ['/tmp/before.png', '/tmp/after.png'],
   maxTokens: 300,
@@ -93,8 +93,8 @@ For `for await` consumers, `stream()` exposes generated pieces as an async
 iterator:
 
 ```js
-for await (const piece of llama.stream({ prompt: 'Describe this.',
-                                          imagePaths: ['/tmp/shot.png'] })) {
+for await (const piece of llameworker.stream({ prompt: 'Describe this.',
+                                               imagePaths: ['/tmp/shot.png'] })) {
   process.stdout.write(piece);
 }
 ```
@@ -105,7 +105,7 @@ local LLM over the loaded model.
 ### Video
 
 ```js
-const summary = await llama.describeVideo('/abs/clip.mp4');
+const summary = await llameworker.describeVideo('/abs/clip.mp4');
 ```
 
 `describeVideo()` samples frames with ffmpeg, sends those frames to the same
@@ -118,9 +118,9 @@ actual cost of a video call.
 Pass a custom prompt when the default summary is not specific enough:
 
 ```js
-await llama.describeImage('/abs/screenshot.png', 'Read every visible error.');
+await llameworker.describeImage('/abs/screenshot.png', 'Read every visible error.');
 
-await llama.describeVideo(
+await llameworker.describeVideo(
   '/abs/clip.mp4',
   'Describe the UI actions in this screen recording.',
 );
@@ -129,7 +129,7 @@ await llama.describeVideo(
 For streaming video output, use `streamVideo()`:
 
 ```js
-const stream = llama.streamVideo(
+const stream = llameworker.streamVideo(
   '/abs/clip.mp4',
   'Describe the visible scene changes.',
 );
@@ -172,12 +172,12 @@ are:
 
 ## API summary
 
-`LlamaVision.load(options)` -> instance · `llama.prompt(options)` ->
-result · `llama.describeImage(path, prompt?, options?)` ·
-`llama.describeVideo(path, prompt?, options?, frameOptions?)` ·
-`llama.stream(options)` / `llama.streamVideo(path, prompt?, options?, frameOptions?)`
+`LlameWorker.load(options)` -> instance · `llameworker.prompt(options)` ->
+result · `llameworker.describeImage(path, prompt?, options?)` ·
+`llameworker.describeVideo(path, prompt?, options?, frameOptions?)` ·
+`llameworker.stream(options)` / `llameworker.streamVideo(path, prompt?, options?, frameOptions?)`
 -> async iterator of pieces ·
-`llama.loaded` · `llama.unload()` ·
+`llameworker.loaded` · `llameworker.unload()` ·
 `extractVideoFrames(path, options?)` / `cleanupVideoFrames(frames)` ·
 `mediaMarker` (place images manually inside a prompt).
 

@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.24)
-project(llama_vision_node)
+project(llameworker_node)
 
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
@@ -8,7 +8,7 @@ set(CMAKE_CXX_EXTENSIONS OFF)
 # Provided by cmake-js.
 include_directories(${CMAKE_JS_INC})
 
-# The LlamaVision core (brings llama.cpp with it).
+# The llameworker core (brings llama.cpp with it).
 add_subdirectory(${CMAKE_SOURCE_DIR}/externals/llame-worker)
 
 add_library(${PROJECT_NAME} SHARED
@@ -26,7 +26,7 @@ set_target_properties(${PROJECT_NAME} PROPERTIES
 )
 
 target_link_libraries(${PROJECT_NAME} PRIVATE
-    LlamaVision
+    llameworker
     ${CMAKE_JS_LIB}
 )
 
