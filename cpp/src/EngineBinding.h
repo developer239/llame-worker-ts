@@ -18,7 +18,7 @@ class EngineBinding : public Napi::ObjectWrap<EngineBinding> {
 
  private:
   Napi::Value Load(const Napi::CallbackInfo& info);
-  Napi::Value Generate(const Napi::CallbackInfo& info);
+  Napi::Value Prompt(const Napi::CallbackInfo& info);
   Napi::Value Unload(const Napi::CallbackInfo& info);
   Napi::Value IsLoaded(const Napi::CallbackInfo& info);
 

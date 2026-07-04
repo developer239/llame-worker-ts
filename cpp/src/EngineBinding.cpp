@@ -58,8 +58,8 @@ VisionModelParams ReadModelParams(const Napi::Object& source) {
   return params;
 }
 
-GenerateParams ReadGenerateParams(const Napi::Object& source) {
-  GenerateParams params;
+PromptParams ReadPromptParams(const Napi::Object& source) {
+  PromptParams params;
   ReadString(source, "prompt", params.prompt);
   if (source.Has("imagePaths") && source.Get("imagePaths").IsArray()) {
     Napi::Array paths = source.Get("imagePaths").As<Napi::Array>();
@@ -155,11 +155,11 @@ class UnloadWorker : public Napi::AsyncWorker {
   std::shared_ptr<std::atomic<bool>> busy;
 };
 
-class GenerateWorker : public Napi::AsyncWorker {
+class PromptWorker : public Napi::AsyncWorker {
  public:
-  GenerateWorker(Napi::Env env, std::shared_ptr<LlamaVision> engine,
-                 std::shared_ptr<std::atomic<bool>> busy,
-                 GenerateParams params, Napi::Function onToken)
+  PromptWorker(Napi::Env env, std::shared_ptr<LlamaVision> engine,
+               std::shared_ptr<std::atomic<bool>> busy,
+               PromptParams params, Napi::Function onToken)
       : Napi::AsyncWorker(env),
         deferred(Napi::Promise::Deferred::New(env)),
         engine(std::move(engine)),
@@ -188,7 +188,7 @@ class GenerateWorker : public Napi::AsyncWorker {
             });
       };
     }
-    result = engine->Generate(params, callback);
+    result = engine->Prompt(params, callback);
   }
 
   void OnOK() override {
@@ -227,10 +227,10 @@ class GenerateWorker : public Napi::AsyncWorker {
   Napi::Promise::Deferred deferred;
   std::shared_ptr<LlamaVision> engine;
   std::shared_ptr<std::atomic<bool>> busy;
-  GenerateParams params;
+  PromptParams params;
   Napi::ThreadSafeFunction tokenFn;
   bool hasTokenFn = false;
-  GenerateResult result;
+  PromptResult result;
 };
 
 }  // namespace
@@ -242,7 +242,7 @@ Napi::Object EngineBinding::Init(Napi::Env env, Napi::Object exports) {
       env, "NativeEngine",
       {
           InstanceMethod("load", &EngineBinding::Load),
-          InstanceMethod("generate", &EngineBinding::Generate),
+          InstanceMethod("generate", &EngineBinding::Prompt),
           InstanceMethod("unload", &EngineBinding::Unload),
           InstanceMethod("isLoaded", &EngineBinding::IsLoaded),
       });
@@ -276,7 +276,7 @@ Napi::Value EngineBinding::Load(const Napi::CallbackInfo& info) {
   return worker->Promise();
 }
 
-Napi::Value EngineBinding::Generate(const Napi::CallbackInfo& info) {
+Napi::Value EngineBinding::Prompt(const Napi::CallbackInfo& info) {
   Napi::Env env = info.Env();
   if (info.Length() < 1 || !info[0].IsObject()) {
     Napi::TypeError::New(env, "generate() expects an options object")
@@ -292,8 +292,8 @@ Napi::Value EngineBinding::Generate(const Napi::CallbackInfo& info) {
         .ThrowAsJavaScriptException();
     return env.Undefined();
   }
-  auto* worker = new GenerateWorker(
-      env, engine, busy, ReadGenerateParams(info[0].As<Napi::Object>()),
+  auto* worker = new PromptWorker(
+      env, engine, busy, ReadPromptParams(info[0].As<Napi::Object>()),
       onToken);
   worker->Queue();
   return worker->Promise();

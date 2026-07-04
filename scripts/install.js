@@ -14,7 +14,7 @@ const { existsSync, rmSync } = require('node:fs');
 const path = require('node:path');
 
 const LLAME_WORKER_REPO = 'https://github.com/developer239/llame-worker.git';
-const LLAME_WORKER_REF = 'v2.0.0';
+const LLAME_WORKER_REF = 'e1d72bd951afe1447c436ed0f488a8c488882171';
 
 const rootDir = path.join(__dirname, '..');
 const vendorDir = path.join(rootDir, 'cpp', 'externals', 'llame-worker');
