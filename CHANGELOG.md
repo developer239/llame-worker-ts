@@ -1,3 +1,10 @@
+## [2.0.2](https://github.com/developer239/llame-worker-ts/compare/v2.0.1...v2.0.2) (2026-07-05)
+
+
+### Bug Fixes
+
+* checkout pinned llame-worker commit after clone ([13c3da3](https://github.com/developer239/llame-worker-ts/commit/13c3da375a6260ffca13c597b5bd0b5c0e7b87d9))
+
 ## [2.0.1](https://github.com/developer239/llame-worker-ts/compare/v2.0.0...v2.0.1) (2026-07-05)
 
 
