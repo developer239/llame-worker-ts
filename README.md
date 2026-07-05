@@ -1,5 +1,10 @@
 # Llame Worker TS 🦙🦙
 
+[![npm version](https://img.shields.io/npm/v/llama.cpp-ts.svg?style=flat)](https://www.npmjs.com/package/llama.cpp-ts)
+[![npm downloads](https://img.shields.io/npm/dm/llama.cpp-ts.svg?style=flat)](https://www.npmjs.com/package/llama.cpp-ts)
+[![Release](https://github.com/developer239/llame-worker-ts/actions/workflows/main.yml/badge.svg)](https://github.com/developer239/llame-worker-ts/actions/workflows/main.yml)
+[![license](https://img.shields.io/npm/l/llama.cpp-ts.svg?style=flat)](https://github.com/developer239/llame-worker-ts/blob/master/LICENSE)
+
 Node.js bindings for [llame-worker](https://github.com/developer239/llame-worker),
 a small C++ wrapper around [llama.cpp](https://github.com/ggml-org/llama.cpp)'s
 multimodal API. Use it when a Node process needs local one-off prompts over a
