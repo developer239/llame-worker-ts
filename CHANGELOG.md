@@ -1,3 +1,10 @@
+## [2.0.1](https://github.com/developer239/llame-worker-ts/compare/v2.0.0...v2.0.1) (2026-07-05)
+
+
+### Bug Fixes
+
+* correct package repository metadata ([9c87674](https://github.com/developer239/llame-worker-ts/commit/9c8767430bd327d8bfed82fb5282db0f104c4468))
+
 # [2.0.0](https://github.com/developer239/llama.cpp-ts/compare/v1.2.0...v2.0.0) (2026-07-05)
 
 
