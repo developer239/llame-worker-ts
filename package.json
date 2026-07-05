@@ -2,7 +2,10 @@
   "name": "llama.cpp-ts",
   "version": "2.0.0",
   "description": "Local multimodal (vision) inference for Node.js: one-off image, video, and text prompts over llama.cpp. No server, no API costs.",
-  "repository": "https://github.com/developer239/llama.cpp-ts",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/developer239/llame-worker-ts.git"
+  },
   "license": "MIT",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
