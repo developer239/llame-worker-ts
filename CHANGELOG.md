@@ -1,3 +1,26 @@
+# [2.0.0](https://github.com/developer239/llama.cpp-ts/compare/v1.2.0...v2.0.0) (2026-07-05)
+
+
+* feat!: rewrite as LlamaVision multimodal bindings over llame-worker ([f142bbe](https://github.com/developer239/llama.cpp-ts/commit/f142bbef2faa376b5aebba5b9f6d506ce5aa9008))
+
+
+### Features
+
+* add video streaming helper ([aa1389f](https://github.com/developer239/llama.cpp-ts/commit/aa1389f6474e2e3c8fa32f643e1118ac553c5338))
+* rename prompt API ([26b20ed](https://github.com/developer239/llama.cpp-ts/commit/26b20edf9e0995085bbca3d2bfc31cdc94e6d11d))
+* rename wrapper api to llameworker ([541cf60](https://github.com/developer239/llama.cpp-ts/commit/541cf60e2d8e5c2078cd1dec9c587a228014b53c))
+* track namespaced camelCase core and rename native prompt method ([255f752](https://github.com/developer239/llama.cpp-ts/commit/255f752eb5070f5c7da03bab73d778aa6560cabf))
+* use prompt core api ([d752301](https://github.com/developer239/llama.cpp-ts/commit/d7523018fa28f5dd3cba2027cf089053c40a6c53))
+
+
+### BREAKING CHANGES
+
+* The API is now multimodal and promise-based. `new Llama()`
++ `initialize(path, {nGpuLayers}, {nContext})` + `prompt()` returning a
+blocking TokenStream are replaced by `await LlamaVision.load({ modelPath,
+projectorPath, ... })` and `generate`/`stream`. A multimodal projector is
+now required at load.
+
 # [1.2.0](https://github.com/developer239/llama.cpp-ts/compare/v1.1.0...v1.2.0) (2024-09-26)
 
 
