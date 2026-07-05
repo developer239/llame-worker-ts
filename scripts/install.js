@@ -64,15 +64,13 @@ if (!isAvailable('cmake')) {
 if (!existsSync(path.join(vendorDir, 'CMakeLists.txt'))) {
   console.log(`[llama.cpp-ts] Fetching llame-worker @ ${LLAME_WORKER_REF} ...`);
   rmSync(vendorDir, { recursive: true, force: true });
-  run('git', [
-    'clone',
-    '--depth',
-    '1',
-    '--branch',
-    LLAME_WORKER_REF,
-    LLAME_WORKER_REPO,
-    vendorDir,
-  ]);
+
+  // `git clone --branch <value>` only accepts a branch or tag name, not a raw
+  // commit SHA. Our pin is deliberately a commit SHA so published installs stay
+  // stable even if upstream branch names move. Clone the repo, then checkout the
+  // pinned commit explicitly.
+  run('git', ['clone', LLAME_WORKER_REPO, vendorDir]);
+  run('git', ['checkout', LLAME_WORKER_REF], { cwd: vendorDir });
 }
 
 // 2) Ensure its llama.cpp submodule is initialized. Shallow when the host
